@@ -20,7 +20,7 @@ define PACKAGE_VERSION  "20180716"
 define BUGS_ADDRESS     "neomutt-devel@neomutt.org"
 
 # Subdirectories that contain additional Makefile.autosetup files
-set subdirs {po doc contrib}
+set subdirs {po doc contrib fuzz}
 ###############################################################################
 
 ###############################################################################
@@ -102,6 +102,8 @@ options {
 # Testing
   testing=0                 => "Enable Unit Testing"
   coverage=0                => "Enable Coverage Testing"
+# Fuzzing
+  fuzzing                   => "Enable Fuzz Testing"
 # Configure with pkg-config
   pkgconf=0                 => "Use pkg-config during configure"
 # Enable all options
@@ -116,7 +118,7 @@ options {
 if {1} {
   # Keep sorted, please.
   foreach opt {
-    autocrypt backtrace bdb coverage doc everything fmemopen full-doc gdbm
+    autocrypt backtrace bdb coverage doc everything fmemopen full-doc fuzzing gdbm
     gnutls gpgme gss homespool idn idn2 inotify kyotocabinet lmdb locales-fix
     lua mixmaster nls notmuch pgp pkgconf qdbm sasl smime sqlite ssl testing
     tokyocabinet
@@ -562,6 +564,13 @@ if {[get-define want-coverage]} {
 if {[get-define want-testing]} {
   define ENABLE_UNIT_TESTS
   lappend subdirs test
+}
+
+###############################################################################
+# Fuzz Testing
+if {[get-define want-fuzzing]} {
+  define ENABLE_FUZZ_TESTS
+  lappend subdirs fuzz
 }
 
 ###############################################################################
