@@ -176,3 +176,23 @@ struct ConfigSubset *ct_get_sub(void)
 
   return NeoMutt->sub;
 }
+
+/**
+ * ct_dump - Dump the tracker stack
+ */
+void ct_dump(void)
+{
+  size_t i = 0;
+  struct ScopePair *sp = NULL;
+  printf("tracker stack:");
+  STAILQ_FOREACH(sp, &ConfigStack, entries)
+  {
+    i++;
+    struct Account *a = sp->account;
+    const char *a_name = a ? a->name : "-";
+    struct Mailbox *m = sp->mailbox;
+    const char *m_name = m ? m->name : "-";
+    printf(" (%s,%s)", a_name, m_name);
+  }
+  printf("\n");
+}

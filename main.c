@@ -402,6 +402,171 @@ bool get_user_info(struct ConfigSet *cs)
   return true;
 }
 
+void dump_one(struct Buffer *tmp, struct Buffer *value, const char *name)
+{
+  mutt_buffer_reset(value);
+  mutt_buffer_reset(tmp);
+  struct HashElem *he = NULL;
+  he = cs_get_elem(Config, name);
+  if (!he)
+  {
+    printf("\n");
+    return;
+  }
+  int type = DTYPE(he->type);
+  cs_he_string_get(Config, he, value);
+  if ((type != DT_BOOL) && (type != DT_NUMBER) && (type != DT_LONG) && (type != DT_QUAD))
+  {
+    mutt_buffer_reset(tmp);
+    pretty_var(value->data, tmp);
+    mutt_buffer_strcpy(value, tmp->data);
+  }
+  dump_config_neo(Config, he, value, NULL, CS_DUMP_NO_FLAGS, stdout);
+}
+
+void dump_vars(const char *account)
+{
+  const char *vars[] = { "folder", "index_format", "sort", "sort_aux" };
+  struct Buffer tmp = mutt_buffer_make(1024);
+  struct Buffer value = mutt_buffer_make(1024);
+  char name[128];
+
+  printf("%s:\n", account ? account : "base values");
+  for (size_t i = 0; i < mutt_array_size(vars); i++)
+  {
+    printf("    ");
+    if (account)
+      snprintf(name, sizeof(name), "%s:%s", account, vars[i]);
+    else
+      snprintf(name, sizeof(name), "%s", vars[i]);
+    dump_one(&tmp, &value, name);
+  }
+
+  mutt_buffer_dealloc(&tmp);
+  mutt_buffer_dealloc(&value);
+}
+
+void dump_accounts2(void)
+{
+  printf("\n");
+  dump_vars(NULL);
+  struct Account *np = NULL;
+  TAILQ_FOREACH(np, &NeoMutt->accounts, entries)
+  {
+    dump_vars(np->name);
+  }
+}
+
+void dump_inherited(struct ConfigSet *cs)
+{
+  printf("\n");
+
+  struct Buffer tmp = mutt_buffer_make(1024);
+  struct Buffer value = mutt_buffer_make(1024);
+
+  struct HashElem **list = get_elem_list(cs);
+  for (size_t i = 0; list[i]; i++)
+  {
+    const char *item = list[i]->key.strkey;
+    if (!strchr(item, ':'))
+      continue;
+    cs_he_string_get(cs, list[i], &value);
+    dump_one(&tmp, &value, item);
+  }
+
+  mutt_buffer_dealloc(&tmp);
+  mutt_buffer_dealloc(&value);
+}
+
+void kill_accounts(void)
+{
+  char buf[128];
+  struct Buffer scratch = mutt_buffer_make(1024);
+  struct Buffer err = mutt_buffer_make(1024);
+
+  struct Account *np = NULL;
+  struct Account *tmp = NULL;
+  TAILQ_FOREACH_SAFE(np, &NeoMutt->accounts, entries, tmp)
+  {
+    snprintf(buf, sizeof(buf), "unaccount %s", np->name);
+    mutt_parse_rc_line(buf, &scratch, &err);
+  }
+
+  mutt_buffer_dealloc(&err);
+  mutt_buffer_dealloc(&scratch);
+}
+
+struct HashElem *get_he(struct ConfigSet *cs, const char *name)
+{
+  struct Slist *sl = slist_parse(name, SLIST_SEP_COLON);
+  if (!sl || (sl->count < 1) || (sl->count > 3))
+    return NULL;
+
+  struct ConfigSubset *sub = NULL;
+  if (sl->count == 1)
+  {
+    sub = NeoMutt->sub;
+    goto have_sub;
+  }
+
+  struct ListNode *np = STAILQ_FIRST(&sl->head);
+  struct Account *a = account_find(np->data);
+  if (!a)
+    return NULL;
+
+  if (sl->count == 2)
+  {
+    sub = a->sub;
+    goto have_sub;
+  }
+
+  np = STAILQ_NEXT(STAILQ_FIRST(&sl->head), entries);
+  struct Mailbox *m = mailbox_find(np->data);
+  if (!m)
+    return NULL;
+
+  sub = m->sub;
+  if (sub)
+    ;
+
+have_sub:
+  return NULL;
+}
+
+#if 0
+void test_parse_set2(int argc, char *argv[])
+{
+    struct Buffer *tmp = mutt_buffer_alloc(256);
+    struct Buffer *var = mutt_buffer_alloc(256);
+    struct Buffer *err = mutt_buffer_alloc(256);
+    for (size_t j = 1; j < argc; j++)
+    {
+      mutt_buffer_reset(tmp);
+      mutt_buffer_reset(var);
+      mutt_buffer_reset(err);
+
+      printf("arg = %s\n", argv[j]);
+      mutt_buffer_printf(var, "set %s", argv[j]);
+      var->dptr = var->data + 4;
+      printf("%s\n", var->data);
+      int rc = parse_set(tmp, var, 0, err);
+      mutt_buffer_reset(var);
+      char *eq = strchr(argv[j], '=');
+      if (eq)
+        *eq = '\0';
+      struct HashElem *he = get_he(Config, argv[j]);
+      cs_subset_string_get(sub, he, var);
+      if (rc < 0)
+        printf("%2d %s\n", rc, var->data);
+      else
+        printf("%2d %s = %s\n", rc, argv[j], var->data);
+    }
+    mutt_buffer_free(&err);
+    mutt_buffer_free(&var);
+    mutt_buffer_free(&tmp);
+}
+#endif
+
 /**
  * main - Start NeoMutt
  * @param argc Number of command line arguments

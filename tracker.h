@@ -32,4 +32,6 @@ void                 ct_push_top(void);
 void                 ct_set_account(struct Account *a);
 void                 ct_set_mailbox(struct Mailbox *m);
 
+void ct_dump(void);
+
 #endif /* MUTT_TRACKER_H */
