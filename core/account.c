@@ -30,6 +30,7 @@
 #include <stddef.h>
 #include "mutt/mutt.h"
 #include "config/lib.h"
+#include "core/lib.h"
 #include "account.h"
 #include "mailbox.h"
 
@@ -41,12 +42,16 @@
  */
 struct Account *account_new(const char *name, struct ConfigSubset *sub)
 {
+  if (!sub)
+    return NULL;
+
   struct Account *a = mutt_mem_calloc(1, sizeof(struct Account));
 
   STAILQ_INIT(&a->mailboxes);
   a->notify = notify_new(a, NT_ACCOUNT);
   a->name = mutt_str_strdup(name);
   a->sub = cs_subset_new(name, sub);
+  a->sub->cs = sub->cs;
 
   return a;
 }
@@ -62,10 +67,14 @@ bool account_mailbox_add(struct Account *a, struct Mailbox *m)
   if (!a || !m)
     return false;
 
+  if (a->magic == MUTT_UNKNOWN)
+    a->magic = m->magic;
+
   m->account = a;
   struct MailboxNode *np = mutt_mem_calloc(1, sizeof(*np));
   np->mailbox = m;
   STAILQ_INSERT_TAIL(&a->mailboxes, np, entries);
+  mailbox_set_subset(m, a->sub);
   notify_set_parent(m->notify, a->notify);
 
   struct EventMailbox ev_m = { m };
@@ -126,4 +135,22 @@ void account_free(struct Account **ptr)
   notify_free(&a->notify);
 
   FREE(ptr);
+}
+
+/**
+ * account_find - Find an Account by its name
+ * @param name Name to find
+ * @retval ptr  Matching Account
+ * @retval NULL None found
+ */
+struct Account *account_find(const char *name)
+{
+  struct Account *np = NULL;
+  TAILQ_FOREACH(np, &NeoMutt->accounts, entries)
+  {
+    if (mutt_str_strcmp(name, np->name) == 0)
+      return np;
+  }
+
+  return NULL;
 }

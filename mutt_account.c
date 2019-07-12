@@ -32,6 +32,7 @@
 #include <sys/types.h>
 #include "mutt/mutt.h"
 #include "email/lib.h"
+#include "core/lib.h"
 #include "conn/conn.h"
 #include "mutt.h"
 #include "mutt_account.h"
@@ -39,6 +40,7 @@
 #include "filter.h"
 #include "globals.h"
 #include "options.h"
+#include "tracker.h"
 
 /* These Config Variables are only used in mutt_account.c */
 char *C_ImapLogin; ///< Config: (imap) Login name for the IMAP server (defaults to #C_ImapUser)
@@ -416,4 +418,61 @@ char *mutt_account_getoauthbearer(struct ConnAccount *account)
   mutt_b64_encode(oauthbearer, strlen(oauthbearer), encoded_token, encoded_len);
   FREE(&oauthbearer);
   return encoded_token;
+}
+
+/**
+ * mutt_parse_account - Parse the 'account' command - Implements ::command_t
+ */
+enum CommandResult mutt_parse_account(struct Buffer *buf, struct Buffer *s,
+                                      unsigned long data, struct Buffer *err)
+{
+  /* Go back to the default account */
+  if (!MoreArgs(s))
+  {
+    ct_set_account(NULL);
+    return MUTT_CMD_SUCCESS;
+  }
+
+  mutt_extract_token(buf, s, MUTT_TOKEN_NO_FLAGS);
+
+  struct Account *a = account_find(buf->data);
+  if (!a)
+  {
+    a = account_new(buf->data, NeoMutt->sub);
+    neomutt_account_add(NeoMutt, a);
+  }
+
+  /* Set the current account, nothing more to do */
+  if (!MoreArgs(s))
+  {
+    ct_set_account(a);
+    return MUTT_CMD_SUCCESS;
+  }
+
+  struct Buffer token = { 0 };
+
+  /* Temporarily alter the current account */
+  ct_push_top();
+  ct_set_account(a);
+
+  /* Process the rest of the line */
+  enum CommandResult rc = mutt_parse_rc_line(s->dptr, &token, err);
+  if (rc == MUTT_CMD_ERROR)
+    mutt_error("%s", err->data);
+
+  ct_pop(); // Restore the previous account
+  mutt_buffer_reset(s);
+
+  FREE(&token.data);
+  return rc;
+}
+
+/**
+ * mutt_parse_unaccount - Parse the 'unaccount' command - Implements ::command_t
+ */
+enum CommandResult mutt_parse_unaccount(struct Buffer *buf, struct Buffer *s,
+                                        unsigned long data, struct Buffer *err)
+{
+  mutt_message("%s", s->data);
+  return MUTT_CMD_SUCCESS;
 }

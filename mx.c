@@ -1542,7 +1542,7 @@ struct Mailbox *mx_path_resolve(const char *path)
   if (m)
     return m;
 
-  m = mailbox_new();
+  m = mailbox_new(NULL);
   m->flags = MB_HIDDEN;
   mutt_buffer_strcpy(&m->pathbuf, path);
   mx_path_canon2(m, C_Folder);

@@ -78,6 +78,7 @@
 #include "send.h"
 #include "sendlib.h"
 #include "terminal.h"
+#include "tracker.h"
 #include "version.h"
 #ifdef ENABLE_NLS
 #include <libintl.h>
@@ -834,6 +835,14 @@ int main(int argc, char *argv[], char *envp[])
 
   if (batch_mode)
   {
+    // dump_accounts2();
+    // kill_accounts();
+    // test_parse_set2(argc, argv);
+    // dump_inherited(Config);
+    // ct_dump();
+#ifdef USE_DEVEL_GRAPHVIZ
+    dump_graphviz("batch");
+#endif
     goto main_ok; // TEST22: neomutt -B
   }
 
@@ -1185,10 +1194,10 @@ int main(int argc, char *argv[], char *envp[])
     {
       if (C_Spoolfile)
       {
-        // Check if C_Spoolfile corresponds a mailboxes' description.
-        struct Mailbox *m_desc = mailbox_find_name(C_Spoolfile);
-        if (m_desc)
-          mutt_buffer_strcpy(&folder, m_desc->realpath);
+        // Check if C_Spoolfile corresponds a mailbox's name.
+        struct Mailbox *m_name = mailbox_find_name(C_Spoolfile);
+        if (m_name)
+          mutt_buffer_strcpy(&folder, m_name->realpath);
         else
           mutt_buffer_strcpy(&folder, C_Spoolfile);
       }

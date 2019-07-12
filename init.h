@@ -1165,7 +1165,7 @@ struct ConfigDef MuttVars[] = {
   ** .pp
   ** If set, flagged messages can't be deleted.
   */
-  { "folder", DT_STRING|DT_PATH|DT_MAILBOX, &C_Folder, IP "~/Mail" },
+  { "folder", DT_STRING|DT_PATH|DT_MAILBOX|DT_INHERIT_ACC, &C_Folder, IP "~/Mail" },
   /*
   ** .pp
   ** Specifies the default location of your mailboxes.  A "+" or "=" at the
@@ -1840,7 +1840,7 @@ struct ConfigDef MuttVars[] = {
   ** This option is a format string, please see the description of
   ** $$index_format for supported \fCprintf(3)\fP-style sequences.
   */
-  { "index_format", DT_STRING|DT_NOT_EMPTY|R_INDEX|R_PAGER, &C_IndexFormat, IP "%4C %Z %{%b %d} %-15.15L (%?l?%4l&%4c?) %s" },
+  { "index_format", DT_STRING|DT_NOT_EMPTY|R_INDEX|R_PAGER|DT_INHERIT_ACC|DT_INHERIT_MBOX, &C_IndexFormat, IP "%4C %Z %{%b %d} %-15.15L (%?l?%4l&%4c?) %s" },
   /*
   ** .pp
   ** This variable allows you to customize the message index display to
@@ -4981,6 +4981,7 @@ static enum CommandResult parse_unsubscribe_from(struct Buffer *buf, struct Buff
 
 const struct Command Commands[] = {
 #ifdef USE_SOCKET
+  { "account",             mutt_parse_account,     0 },
   { "account-hook",        mutt_parse_hook,        MUTT_ACCOUNT_HOOK },
 #endif
   { "alias",               parse_alias,            0 },
@@ -5057,6 +5058,7 @@ const struct Command Commands[] = {
   { "tag-transforms",      parse_tag_transforms,   0 },
   { "timeout-hook",        mutt_parse_hook,        MUTT_TIMEOUT_HOOK | MUTT_GLOBAL_HOOK },
   { "toggle",              parse_set,              MUTT_SET_INV },
+  { "unaccount",           mutt_parse_unaccount,   0 },
   { "unalias",             parse_unalias,          0 },
   { "unalternates",        parse_unalternates,     0 },
   { "unalternative_order", parse_unstailq,         IP &AlternativeOrderList },

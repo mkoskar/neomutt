@@ -27,6 +27,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "mutt_commands.h"
 
 struct ConnAccount;
 struct Url;
@@ -71,5 +72,8 @@ int mutt_account_getlogin(struct ConnAccount *account);
 int mutt_account_getpass(struct ConnAccount *account);
 void mutt_account_unsetpass(struct ConnAccount *account);
 char *mutt_account_getoauthbearer(struct ConnAccount *account);
+
+enum CommandResult mutt_parse_account  (struct Buffer *buf, struct Buffer *s, unsigned long data, struct Buffer *err);
+enum CommandResult mutt_parse_unaccount(struct Buffer *buf, struct Buffer *s, unsigned long data, struct Buffer *err);
 
 #endif /* MUTT_MUTT_ACCOUNT_H */
