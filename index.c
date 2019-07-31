@@ -1059,7 +1059,7 @@ int mutt_index_menu(void)
           IndexHelp);
   menu->menu_custom_redraw = index_custom_redraw;
   mutt_menu_push_current(menu);
-  mutt_window_reflow();
+  mutt_window_reflow(NULL);
 
   if (!attach_msg)
   {
@@ -3641,7 +3641,7 @@ int mutt_index_menu(void)
 
       case OP_SIDEBAR_TOGGLE_VISIBLE:
         bool_str_toggle(Config, "sidebar_visible", NULL);
-        mutt_window_reflow();
+        mutt_window_reflow(NULL);
         break;
 #endif
 
