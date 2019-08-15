@@ -82,6 +82,7 @@ struct MuttWindow
   const char *name;
 };
 
+extern struct MuttWindow *MuttDialogWindow;
 extern struct MuttWindow *MuttHelpWindow;
 extern struct MuttWindow *MuttIndexWindow;
 extern struct MuttWindow *MuttMessageWindow;

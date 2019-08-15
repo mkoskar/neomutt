@@ -38,7 +38,8 @@
 #include "pager.h"
 #include "reflow.h"
 
-struct MuttWindow *RootWindow = NULL; ///< Parent of all Windows
+struct MuttWindow *RootWindow = NULL;       ///< Parent of all Windows
+struct MuttWindow *MuttDialogWindow = NULL; ///< Parent of all Dialogs
 
 struct MuttWindow *MuttHelpWindow = NULL;     ///< Help Window
 struct MuttWindow *MuttIndexWindow = NULL;    ///< Index Window
@@ -203,72 +204,22 @@ void mutt_window_init(void)
   if (RootWindow)
     return;
 
-  struct MuttWindow *w1 =
-      mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_FIXED, 0, 0);
-  struct MuttWindow *w2 =
-      mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_MAXIMISE,
-                      MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
-  struct MuttWindow *w3 =
-      mutt_window_new(MUTT_WIN_ORIENT_HORIZONTAL, MUTT_WIN_SIZE_MAXIMISE,
-                      MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
-  struct MuttWindow *w4 =
-      mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_MAXIMISE,
-                      MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
-  struct MuttWindow *w5 =
-      mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_MAXIMISE,
-                      MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
-  struct MuttWindow *w6 =
-      mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_MAXIMISE,
-                      MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
-  w6->state.visible = false; // The Pager and Pager Bar are initially hidden
-
+  RootWindow = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_FIXED, 0, 0);
   MuttHelpWindow = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_FIXED,
                                    1, MUTT_WIN_SIZE_UNLIMITED);
-  MuttIndexWindow = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_MAXIMISE,
-                                    MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
+  MuttDialogWindow = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_MAXIMISE,
+                                     MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
   MuttMessageWindow = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_FIXED,
                                       1, MUTT_WIN_SIZE_UNLIMITED);
-  MuttPagerBarWindow = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_FIXED,
-                                       1, MUTT_WIN_SIZE_UNLIMITED);
-  MuttPagerWindow = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_MAXIMISE,
-                                    MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
-  MuttSidebarWindow = mutt_window_new(MUTT_WIN_ORIENT_HORIZONTAL, MUTT_WIN_SIZE_FIXED,
-                                      MUTT_WIN_SIZE_UNLIMITED, 20);
-  MuttStatusWindow = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_FIXED,
-                                     1, MUTT_WIN_SIZE_UNLIMITED);
 
-  RootWindow = w1;
-  RootWindow->name = "r1";
-
-  w2->name = "w2";
-  w3->name = "w3";
-  w4->name = "w4";
-  w5->name = "w5";
-  w6->name = "w6";
+  RootWindow->name = "Root";
   MuttHelpWindow->name = "Help";
-  MuttIndexWindow->name = "Index";
+  MuttDialogWindow->name = "Dialogs";
   MuttMessageWindow->name = "Message";
-  MuttPagerBarWindow->name = "PagerBar";
-  MuttPagerWindow->name = "Pager";
-  MuttSidebarWindow->name = "Sidebar";
-  MuttStatusWindow->name = "Status";
 
-  mutt_window_add_child(w1, w2);
-  mutt_window_add_child(w1, MuttMessageWindow);
-
-  mutt_window_add_child(w2, MuttHelpWindow);
-  mutt_window_add_child(w2, w3);
-
-  mutt_window_add_child(w3, MuttSidebarWindow);
-  mutt_window_add_child(w3, w4);
-
-  mutt_window_add_child(w4, w5);
-  mutt_window_add_child(w5, MuttIndexWindow);
-  mutt_window_add_child(w5, MuttStatusWindow);
-
-  mutt_window_add_child(w4, w6);
-  mutt_window_add_child(w6, MuttPagerWindow);
-  mutt_window_add_child(w6, MuttPagerBarWindow);
+  mutt_window_add_child(RootWindow, MuttHelpWindow);
+  mutt_window_add_child(RootWindow, MuttDialogWindow);
+  mutt_window_add_child(RootWindow, MuttMessageWindow);
 }
 
 /**
