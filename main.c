@@ -57,6 +57,7 @@
 #include "color.h"
 #include "context.h"
 #include "curs_lib.h"
+#include "dialog.h"
 #include "globals.h"
 #include "hook.h"
 #include "index.h"
@@ -399,6 +400,36 @@ bool get_user_info(struct ConfigSet *cs)
 
   cs_str_reset(cs, "shell", NULL);
   return true;
+}
+
+static struct Dialog *index_pager_init(void)
+{
+  struct MuttWindow *root = mutt_window_new(MUTT_WIN_ORIENT_HORIZONTAL, MUTT_WIN_SIZE_MAXIMISE, MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
+  struct MuttWindow *right = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_MAXIMISE, MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
+  struct MuttWindow *index = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_MAXIMISE, MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
+  struct MuttWindow *pager = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_MAXIMISE, MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
+  pager->state.visible = false; // The Pager and Pager Bar are initially hidden
+
+  MuttIndexWindow = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_MAXIMISE, MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
+  MuttPagerBarWindow = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_FIXED, 1, MUTT_WIN_SIZE_UNLIMITED);
+  MuttPagerWindow = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_MAXIMISE, MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
+  MuttSidebarWindow = mutt_window_new(MUTT_WIN_ORIENT_HORIZONTAL, MUTT_WIN_SIZE_FIXED, MUTT_WIN_SIZE_UNLIMITED, 20);
+  MuttStatusWindow = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_FIXED, 1, MUTT_WIN_SIZE_UNLIMITED);
+
+  mutt_window_add_child(root, MuttSidebarWindow);
+  mutt_window_add_child(root, right);
+
+  mutt_window_add_child(right, index);
+  mutt_window_add_child(index, MuttIndexWindow);
+  mutt_window_add_child(index, MuttStatusWindow);
+
+  mutt_window_add_child(right, pager);
+  mutt_window_add_child(pager, MuttPagerWindow);
+  mutt_window_add_child(pager, MuttPagerBarWindow);
+
+  struct Dialog *dlg = mutt_mem_calloc(1, sizeof(*dlg));
+  dlg->root = root;
+  return dlg;
 }
 
 /**
@@ -1243,7 +1274,12 @@ int main(int argc, char *argv[], char *envp[])
 #ifdef USE_SIDEBAR
       mutt_sb_set_open_mailbox(Context ? Context->mailbox : NULL);
 #endif
+      struct Dialog *dlg = index_pager_init();
+      dialog_push(dlg);
       mutt_index_menu();
+      dialog_pop();
+      mutt_window_free(&dlg->root);
+      FREE(&dlg);
       ctx_free(&Context);
     }
 #ifdef USE_IMAP

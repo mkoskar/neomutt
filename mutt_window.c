@@ -320,6 +320,9 @@ void mutt_window_reflow_prep(void)
     TAILQ_INSERT_TAIL(&parent->children, first, entries);
   }
 
+  if (!MuttIndexWindow || !MuttPagerWindow)
+    return;
+
   parent = MuttIndexWindow->parent;
   first = TAILQ_FIRST(&parent->children);
 

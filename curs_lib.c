@@ -48,6 +48,7 @@
 #include "curs_lib.h"
 #include "browser.h"
 #include "color.h"
+#include "dialog.h"
 #include "enter_state.h"
 #include "globals.h"
 #include "mutt_curses.h"
@@ -635,8 +636,22 @@ int mutt_do_pager(const char *banner, const char *tempfile, PagerFlags do_color,
   if (!info)
     info = &info2;
 
-  info->pager_status_window = MuttPagerBarWindow;
-  info->pager_window = MuttPagerWindow;
+  struct MuttWindow *root = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_MAXIMISE, MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
+  struct MuttWindow *pager = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_MAXIMISE, MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
+  struct MuttWindow *pbar = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_FIXED, 1, MUTT_WIN_SIZE_UNLIMITED);
+
+  struct Dialog *dialog = mutt_mem_calloc(1, sizeof (*dialog));
+  dialog->root = root;
+
+  mutt_window_add_child(root, pager);
+  mutt_window_add_child(root, pbar);
+
+  dialog_push(dialog);
+
+  info->index_status_window = NULL;
+  info->index_window = NULL;
+  info->pager_status_window = pbar;
+  info->pager_window = pager;
 
   int rc;
 
@@ -659,6 +674,9 @@ int mutt_do_pager(const char *banner, const char *tempfile, PagerFlags do_color,
     mutt_buffer_pool_release(&cmd);
   }
 
+  dialog_pop();
+  mutt_window_free(&root);
+  FREE(&dialog);
   return rc;
 }
 
