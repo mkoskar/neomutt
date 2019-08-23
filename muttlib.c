@@ -409,9 +409,9 @@ bool mutt_needs_mailcap(struct Body *m)
   switch (m->type)
   {
     case TYPE_TEXT:
-      if (mutt_str_strcasecmp("plain", m->subtype) == 0)
-        return false;
-      break;
+      /* we can display any text, overridable by auto_view */
+      return 0;
+
     case TYPE_APPLICATION:
       if (((WithCrypto & APPLICATION_PGP) != 0) && mutt_is_application_pgp(m))
         return false;

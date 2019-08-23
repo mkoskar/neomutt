@@ -1589,7 +1589,7 @@ int mutt_body_handler(struct Body *b, struct State *s)
     else if (mutt_str_strcasecmp("enriched", b->subtype) == 0)
       handler = text_enriched_handler;
     else /* text body type without a handler */
-      plaintext = false;
+      plaintext = true;
   }
   else if (b->type == TYPE_MESSAGE)
   {
