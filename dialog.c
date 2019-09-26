@@ -17,6 +17,7 @@ void dialog_push(struct Dialog *dlg)
 
   TAILQ_INSERT_TAIL(&MuttDialogWindow->children, dlg->root, entries);
   dlg->root->state.visible = true;
+  mutt_window_reflow(MuttDialogWindow);
 }
 
 void dialog_pop(void)
