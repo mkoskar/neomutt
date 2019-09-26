@@ -41,6 +41,7 @@
 #include "core/lib.h"
 #include "mutt.h"
 #include "context.h"
+#include "dialog.h"
 #include "format_flags.h"
 #include "globals.h"
 #include "handler.h"
@@ -224,7 +225,28 @@ static struct Email *select_msg(struct Context *ctx)
   bool done = false;
   char helpstr[1024];
 
+  struct MuttWindow *root = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_MAXIMISE, MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
+  root->name = "postpone-root";
+  struct MuttWindow *pager = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_MAXIMISE, MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
+  pager->name = "postpone-pager";
+  struct MuttWindow *pbar = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_FIXED, 1, MUTT_WIN_SIZE_UNLIMITED);
+  pbar->name = "postpone-bar";
+
+  struct Dialog *dialog = mutt_mem_calloc(1, sizeof (*dialog));
+  dialog->root = root;
+
+  mutt_window_add_child(root, pager);
+  mutt_window_add_child(root, pbar);
+
+  dialog_push(dialog);
+  win_dump();
+
   struct Menu *menu = mutt_menu_new(MENU_POSTPONE);
+
+  menu->pagelen = pager->state.rows;
+  menu->indexwin = pager;
+  menu->statuswin = pbar;
+
   menu->menu_make_entry = post_make_entry;
   menu->max = ctx->mailbox->msg_count;
   menu->title = _("Postponed Messages");
@@ -279,6 +301,10 @@ static struct Email *select_msg(struct Context *ctx)
   C_Sort = orig_sort;
   mutt_menu_pop_current(menu);
   mutt_menu_free(&menu);
+  dialog_pop();
+  mutt_window_free(&root);
+  FREE(&dialog);
+
   return (r > -1) ? ctx->mailbox->emails[r] : NULL;
 }
 
