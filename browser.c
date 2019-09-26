@@ -48,6 +48,7 @@
 #include "browser.h"
 #include "context.h"
 #include "curs_lib.h"
+#include "dialog.h"
 #include "format_flags.h"
 #include "globals.h"
 #include "keymap.h"
@@ -1344,7 +1345,29 @@ void mutt_buffer_select_file(struct Buffer *file, SelectFileFlags flags,
     if (examine_directory(NULL, &state, mutt_b2s(&LastDir), mutt_b2s(prefix)) == -1)
       goto bail;
   }
+
+  struct MuttWindow *root = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_MAXIMISE, MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
+  root->name = "browser-root";
+  struct MuttWindow *pager = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_MAXIMISE, MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
+  pager->name = "browser-pager";
+  struct MuttWindow *pbar = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_FIXED, 1, MUTT_WIN_SIZE_UNLIMITED);
+  pbar->name = "browser-bar";
+
+  struct Dialog *dialog = mutt_mem_calloc(1, sizeof (*dialog));
+  dialog->root = root;
+
+  mutt_window_add_child(root, pager);
+  mutt_window_add_child(root, pbar);
+
+  dialog_push(dialog);
+  win_dump();
+
   menu = mutt_menu_new(MENU_FOLDER);
+
+  menu->pagelen = pager->state.rows;
+  menu->indexwin = pager;
+  menu->statuswin = pbar;
+
   menu->menu_make_entry = folder_make_entry;
   menu->menu_search = select_file_search;
   menu->title = title;
@@ -2169,6 +2192,9 @@ bail:
   {
     mutt_menu_pop_current(menu);
     mutt_menu_free(&menu);
+    dialog_pop();
+    mutt_window_free(&root);
+    FREE(&dialog);
   }
 
   goto_swapper[0] = '\0';
