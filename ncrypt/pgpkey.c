@@ -46,6 +46,7 @@
 #include "pgpkey.h"
 #include "crypt.h"
 #include "curs_lib.h"
+#include "dialog.h"
 #include "filter.h"
 #include "format_flags.h"
 #include "globals.h"
@@ -670,7 +671,28 @@ static struct PgpKeyInfo *pgp_select_key(struct PgpKeyInfo *keys,
   mutt_make_help(buf, sizeof(buf), _("Help"), MENU_PGP, OP_HELP);
   strcat(helpstr, buf);
 
+  struct MuttWindow *root = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_MAXIMISE, MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
+  root->name = "pgp-root";
+  struct MuttWindow *pager = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_MAXIMISE, MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
+  pager->name = "pgp-pager";
+  struct MuttWindow *pbar = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_FIXED, 1, MUTT_WIN_SIZE_UNLIMITED);
+  pbar->name = "pgp-bar";
+
+  struct Dialog *dialog = mutt_mem_calloc(1, sizeof (*dialog));
+  dialog->root = root;
+
+  mutt_window_add_child(root, pager);
+  mutt_window_add_child(root, pbar);
+
+  dialog_push(dialog);
+  win_dump();
+
   menu = mutt_menu_new(MENU_PGP);
+
+  menu->pagelen = pager->state.rows;
+  menu->indexwin = pager;
+  menu->statuswin = pbar;
+
   menu->max = i;
   menu->menu_make_entry = pgp_make_entry;
   menu->help = helpstr;
@@ -809,6 +831,9 @@ static struct PgpKeyInfo *pgp_select_key(struct PgpKeyInfo *keys,
   mutt_menu_pop_current(menu);
   mutt_menu_free(&menu);
   FREE(&key_table);
+  dialog_pop();
+  mutt_window_free(&root);
+  FREE(&dialog);
 
   return kp;
 }

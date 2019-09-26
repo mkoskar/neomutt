@@ -46,6 +46,7 @@
 #include "crypt.h"
 #include "cryptglue.h"
 #include "curs_lib.h"
+#include "dialog.h"
 #include "filter.h"
 #include "format_flags.h"
 #include "globals.h"
@@ -54,6 +55,7 @@
 #include "mutt_curses.h"
 #include "mutt_logging.h"
 #include "mutt_menu.h"
+#include "mutt_window.h"
 #include "muttlib.h"
 #include "ncrypt.h"
 #include "opcodes.h"
@@ -553,8 +555,29 @@ static struct SmimeKey *smime_select_key(struct SmimeKey *keys, char *query)
   mutt_make_help(buf, sizeof(buf), _("Help"), MENU_SMIME, OP_HELP);
   strcat(helpstr, buf);
 
+  struct MuttWindow *root = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_MAXIMISE, MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
+  root->name = "smime-root";
+  struct MuttWindow *pager = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_MAXIMISE, MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
+  pager->name = "smime-pager";
+  struct MuttWindow *pbar = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_FIXED, 1, MUTT_WIN_SIZE_UNLIMITED);
+  pbar->name = "smime-bar";
+
+  struct Dialog *dialog = mutt_mem_calloc(1, sizeof (*dialog));
+  dialog->root = root;
+
+  mutt_window_add_child(root, pager);
+  mutt_window_add_child(root, pbar);
+
+  dialog_push(dialog);
+  win_dump();
+
   /* Create the menu */
   menu = mutt_menu_new(MENU_SMIME);
+
+  menu->pagelen = pager->state.rows;
+  menu->indexwin = pager;
+  menu->statuswin = pbar;
+
   menu->max = table_index;
   menu->menu_make_entry = smime_make_entry;
   menu->help = helpstr;
@@ -611,6 +634,9 @@ static struct SmimeKey *smime_select_key(struct SmimeKey *keys, char *query)
   mutt_menu_pop_current(menu);
   mutt_menu_free(&menu);
   FREE(&table);
+  dialog_pop();
+  mutt_window_free(&root);
+  FREE(&dialog);
 
   return selected_key;
 }
