@@ -1,0 +1,7 @@
+becue@crans.org	Pierre-Elliott Bécue	p-eb
+damien.riegel@gmail.com	Damien Riegel	d-k-c
+darnir@gmail.com	Darshit Shah	darnir
+gahr@gahr.ch	Pietro Cerutti	gahr
+gui-gui@netcourrier.com	Guillaume Brogi	guiniol
+guyzmo+github+pub@m0g.net	Bernard Pratz	guyzmo
+rich@flatcap.org	Richard Russon	flatcap
