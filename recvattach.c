@@ -42,6 +42,7 @@
 #include "commands.h"
 #include "context.h"
 #include "curs_lib.h"
+#include "dialog.h"
 #include "filter.h"
 #include "format_flags.h"
 #include "globals.h"
@@ -1421,7 +1422,32 @@ void mutt_view_attachments(struct Email *e)
   if (!msg)
     return;
 
+  struct MuttWindow *root = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_MAXIMISE, MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
+  root->name = "attach-root";
+  struct MuttWindow *pager = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_MAXIMISE, MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
+  pager->name = "attach-pager";
+  struct MuttWindow *pbar = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_FIXED, 1, MUTT_WIN_SIZE_UNLIMITED);
+  pbar->name = "attach-bar";
+
+  struct Dialog *dialog = mutt_mem_calloc(1, sizeof (*dialog));
+  dialog->root = root;
+
+  mutt_window_add_child(root, pager);
+  mutt_window_add_child(root, pbar);
+
+  dialog_push(dialog);
+  win_dump();
+
   struct Menu *menu = mutt_menu_new(MENU_ATTACH);
+
+  menu->pagelen = pager->state.rows;
+  menu->indexwin = pager;
+  menu->statuswin = pbar;
+
+  menu->pagelen = pager->state.rows;
+  menu->indexwin = pager;
+  menu->statuswin = pbar;
+
   menu->title = _("Attachments");
   menu->menu_make_entry = attach_make_entry;
   menu->menu_tag = attach_tag;
@@ -1703,6 +1729,9 @@ void mutt_view_attachments(struct Email *e)
 
         mutt_menu_pop_current(menu);
         mutt_menu_free(&menu);
+        dialog_pop();
+        mutt_window_free(&root);
+        FREE(&dialog);
         return;
     }
 
