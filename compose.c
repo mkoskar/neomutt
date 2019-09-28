@@ -50,6 +50,7 @@
 #include "commands.h"
 #include "context.h"
 #include "curs_lib.h"
+#include "dialog.h"
 #include "edit.h"
 #include "format_flags.h"
 #include "globals.h"
@@ -1107,11 +1108,32 @@ int mutt_compose_menu(struct Email *e, struct Buffer *fcc, struct Email *e_cur, 
 
   init_header_padding();
 
+  struct MuttWindow *root = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_MAXIMISE, MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
+  root->name = "compose-root";
+  struct MuttWindow *pager = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_MAXIMISE, MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
+  pager->name = "compose-pager";
+  struct MuttWindow *pbar = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_FIXED, 1, MUTT_WIN_SIZE_UNLIMITED);
+  pbar->name = "compose-bar";
+
   rd->email = e;
   rd->fcc = fcc;
-  rd->win = MuttIndexWindow;
+  rd->win = pager;
+
+  struct Dialog *dialog = mutt_mem_calloc(1, sizeof (*dialog));
+  dialog->root = root;
+
+  mutt_window_add_child(root, pager);
+  mutt_window_add_child(root, pbar);
+
+  dialog_push(dialog);
+  win_dump();
 
   struct Menu *menu = mutt_menu_new(MENU_COMPOSE);
+
+  menu->pagelen = pager->state.rows;
+  menu->indexwin = pager;
+  menu->statuswin = pbar;
+
   menu->offset = HDR_ATTACH;
   menu->menu_make_entry = snd_make_entry;
   menu->menu_tag = attach_tag;
@@ -2250,6 +2272,9 @@ int mutt_compose_menu(struct Email *e, struct Buffer *fcc, struct Email *e_cur, 
 
   mutt_menu_pop_current(menu);
   mutt_menu_free(&menu);
+  dialog_pop();
+  mutt_window_free(&root);
+  FREE(&dialog);
 
   if (actx->idxlen)
     e->content = actx->idx[0]->content;
