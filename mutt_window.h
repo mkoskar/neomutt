@@ -119,6 +119,7 @@ void mutt_window_move_abs (int row, int col);
 int  mutt_window_mvaddstr (struct MuttWindow *win, int row, int col, const char *str);
 int  mutt_window_mvprintw (struct MuttWindow *win, int row, int col, const char *fmt, ...);
 int  mutt_window_printf   (const char *format, ...);
+bool mutt_window_is_visible(struct MuttWindow *win);
 
 void mutt_winlist_free       (struct MuttWindowList *head);
 void win_dump(void);

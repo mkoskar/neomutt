@@ -974,6 +974,9 @@ void mutt_sb_draw(void)
 
   struct MuttWindow *win = MuttSidebarWindow;
 
+  if (!mutt_window_is_visible(win))
+    return;
+
   int row = 0, col = 0;
   mutt_window_get_coords(win, &row, &col);
 

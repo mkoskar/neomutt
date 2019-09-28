@@ -581,3 +581,17 @@ void win_dump(void)
 {
   dump(RootWindow, 0);
 }
+
+bool mutt_window_is_visible(struct MuttWindow *win)
+{
+  if (!win)
+    return false;
+
+  for (; win; win = win->parent)
+  {
+    if (!win->state.visible)
+      return false;
+  }
+
+  return true;
+}
