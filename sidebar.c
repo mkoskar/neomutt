@@ -1175,8 +1175,10 @@ void mutt_sb_notify_mailbox(struct Mailbox *m, bool created)
  */
 int mutt_sb_observer(struct NotifyCallback *nc)
 {
-  if (!nc || !MuttSidebarWindow)
+  if (!nc || !nc->data)
     return -1;
+
+  struct MuttWindow *win = (struct MuttWindow *) nc->data;
 
   struct EventConfig *ec = (struct EventConfig *) nc->event;
 
@@ -1185,23 +1187,22 @@ int mutt_sb_observer(struct NotifyCallback *nc)
 
   bool repaint = false;
 
-  if (MuttSidebarWindow->state.visible == !C_SidebarVisible)
+  if (win->state.visible == !C_SidebarVisible)
   {
-    MuttSidebarWindow->state.visible = C_SidebarVisible;
+    win->state.visible = C_SidebarVisible;
     repaint = true;
   }
 
-  if (MuttSidebarWindow->req_cols != C_SidebarWidth)
+  if (win->req_cols != C_SidebarWidth)
   {
-    MuttSidebarWindow->req_cols = C_SidebarWidth;
+    win->req_cols = C_SidebarWidth;
     repaint = true;
   }
 
-  struct MuttWindow *parent = MuttSidebarWindow->parent;
+  struct MuttWindow *parent = win->parent;
   struct MuttWindow *first = TAILQ_FIRST(&parent->children);
 
-  if ((C_SidebarOnRight && (first == MuttSidebarWindow)) ||
-      (!C_SidebarOnRight && (first != MuttSidebarWindow)))
+  if ((C_SidebarOnRight && (first == win)) || (!C_SidebarOnRight && (first != win)))
   {
     // Swap the Sidebar and the Container of the Index/Pager
     TAILQ_REMOVE(&parent->children, first, entries);

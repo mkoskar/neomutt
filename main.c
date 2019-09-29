@@ -429,6 +429,9 @@ static struct Dialog *index_pager_init(void)
 
   struct Dialog *dlg = mutt_mem_calloc(1, sizeof(*dlg));
   dlg->root = root;
+
+  notify_observer_add(Config->notify, NT_CONFIG, 0, mutt_sb_observer, (intptr_t) MuttSidebarWindow);
+
   return dlg;
 }
 
