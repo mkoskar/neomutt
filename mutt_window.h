@@ -80,6 +80,10 @@ struct MuttWindow
   struct MuttWindow *parent;         ///< Parent Window
   struct MuttWindowList children;    ///< Children Windows
   const char *name;
+
+  // enum WindowType type;              ///< e.g. #WIN_SIDEBAR
+  // intptr_t wdata;                    ///< private data
+  // void (*free_wdata)(void **);       ///< Callback function to free private data
 };
 
 extern struct MuttWindow *MuttDialogWindow;
