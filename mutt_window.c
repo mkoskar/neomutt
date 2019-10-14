@@ -30,7 +30,9 @@
 #include <stdarg.h>
 #include <string.h>
 #include "mutt/mutt.h"
+#include "core/lib.h"
 #include "mutt_window.h"
+#include "context.h"
 #include "globals.h"
 #include "mutt_curses.h"
 #include "mutt_menu.h"
@@ -348,7 +350,8 @@ void mutt_window_reflow_prep(void)
   parent = MuttPagerWindow->parent;
   if (parent->state.visible)
   {
-    MuttIndexWindow->req_rows = C_PagerIndexLines;
+    int msg_count = (Context && Context->mailbox) ? Context->mailbox->msg_count : 0;
+    MuttIndexWindow->req_rows = MIN(C_PagerIndexLines, msg_count);
     MuttIndexWindow->size = MUTT_WIN_SIZE_FIXED;
 
     MuttIndexWindow->parent->size = MUTT_WIN_SIZE_MINIMISE;
