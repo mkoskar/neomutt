@@ -41,9 +41,11 @@
 #include "conn_globals.h"
 #include "connaccount.h"
 #include "connection.h"
+#include "dialog.h"
 #include "keymap.h"
 #include "mutt_account.h"
 #include "mutt_menu.h"
+#include "mutt_window.h"
 #include "muttlib.h"
 #include "opcodes.h"
 #include "options.h"
@@ -492,7 +494,27 @@ static int tls_check_one_certificate(const gnutls_datum_t *certdata,
 
   struct Buffer *drow = mutt_buffer_pool_get();
 
+  struct MuttWindow *root = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_MAXIMISE, MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
+  root->name = "tls-root";
+  struct MuttWindow *pager = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_MAXIMISE, MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
+  pager->name = "tls-pager";
+  struct MuttWindow *pbar = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_FIXED, 1, MUTT_WIN_SIZE_UNLIMITED);
+  pbar->name = "tls-bar";
+
+  struct Dialog *dialog = mutt_mem_calloc(1, sizeof (*dialog));
+  dialog->root = root;
+
+  mutt_window_add_child(root, pager);
+  mutt_window_add_child(root, pbar);
+
+  dialog_push(dialog);
+  win_dump();
+
   menu = mutt_menu_new(MENU_GENERIC);
+  menu->pagelen = pager->state.rows;
+  menu->indexwin = pager;
+  menu->statuswin = pbar;
+
   mutt_menu_push_current(menu);
 
   buflen = sizeof(dn_common_name);
@@ -757,6 +779,8 @@ static int tls_check_one_certificate(const gnutls_datum_t *certdata,
   mutt_buffer_pool_release(&drow);
   mutt_menu_pop_current(menu);
   mutt_menu_free(&menu);
+  dialog_pop();
+  mutt_window_free(&root);
   gnutls_x509_crt_deinit(cert);
 
   return done == 2;
