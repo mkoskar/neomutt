@@ -36,6 +36,7 @@
 #include "mutt.h"
 #include "autocrypt.h"
 #include "curs_lib.h"
+#include "dialog.h"
 #include "format_flags.h"
 #include "globals.h"
 #include "keymap.h"
@@ -271,9 +272,29 @@ void mutt_autocrypt_account_menu(void)
   if (mutt_autocrypt_init(false))
     return;
 
+  struct MuttWindow *root = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_MAXIMISE, MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
+  root->name = "autocrypt-root";
+  struct MuttWindow *pager = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_MAXIMISE, MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
+  pager->name = "autocrypt-pager";
+  struct MuttWindow *pbar = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_FIXED, 1, MUTT_WIN_SIZE_UNLIMITED);
+  pbar->name = "autocrypt-bar";
+
+  struct Dialog *dialog = mutt_mem_calloc(1, sizeof (*dialog));
+  dialog->root = root;
+
+  mutt_window_add_child(root, pager);
+  mutt_window_add_child(root, pbar);
+
+  dialog_push(dialog);
+  win_dump();
+
   struct Menu *menu = create_menu();
   if (!menu)
     return;
+
+  menu->pagelen = pager->state.rows;
+  menu->indexwin = pager;
+  menu->statuswin = pbar;
 
   bool done = false;
   while (!done)
@@ -289,6 +310,9 @@ void mutt_autocrypt_account_menu(void)
         {
           menu_free(&menu);
           menu = create_menu();
+          menu->pagelen = pager->state.rows;
+          menu->indexwin = pager;
+          menu->statuswin = pbar;
         }
         break;
 
@@ -307,6 +331,9 @@ void mutt_autocrypt_account_menu(void)
           {
             menu_free(&menu);
             menu = create_menu();
+            menu->pagelen = pager->state.rows;
+            menu->indexwin = pager;
+            menu->statuswin = pbar;
           }
         }
         break;
@@ -332,4 +359,6 @@ void mutt_autocrypt_account_menu(void)
   }
 
   menu_free(&menu);
+  dialog_pop();
+  mutt_window_free(&root);
 }
