@@ -39,6 +39,7 @@
 #include "mutt.h"
 #include "color.h"
 #include "curs_lib.h"
+#include "dialog.h"
 #include "filter.h"
 #include "format_flags.h"
 #include "keymap.h"
@@ -605,7 +606,27 @@ void mix_make_chain(struct MuttWindow *win, struct ListHead *chainhead, int cols
 
   mix_screen_coordinates(win, type2_list, &coords, chain, 0);
 
+  struct MuttWindow *root = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_MAXIMISE, MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
+  root->name = "remailer-root";
+  struct MuttWindow *pager = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_MAXIMISE, MUTT_WIN_SIZE_UNLIMITED, MUTT_WIN_SIZE_UNLIMITED);
+  pager->name = "remailer-pager";
+  struct MuttWindow *pbar = mutt_window_new(MUTT_WIN_ORIENT_VERTICAL, MUTT_WIN_SIZE_FIXED, 1, MUTT_WIN_SIZE_UNLIMITED);
+  pbar->name = "remailer-bar";
+
+  struct Dialog *dialog = mutt_mem_calloc(1, sizeof (*dialog));
+  dialog->root = root;
+
+  mutt_window_add_child(root, pager);
+  mutt_window_add_child(root, pbar);
+
+  dialog_push(dialog);
+  win_dump();
+
   menu = mutt_menu_new(MENU_MIX);
+  menu->pagelen = pager->state.rows;
+  menu->indexwin = pager;
+  menu->statuswin = pbar;
+
   menu->max = ttll;
   menu->menu_make_entry = mix_entry;
   menu->menu_tag = NULL;
@@ -755,6 +776,8 @@ void mix_make_chain(struct MuttWindow *win, struct ListHead *chainhead, int cols
 
   mutt_menu_pop_current(menu);
   mutt_menu_free(&menu);
+  dialog_pop();
+  mutt_window_free(&root);
 
   /* construct the remailer list */
 
