@@ -688,6 +688,7 @@ static bool prepare_sidebar(int page_size)
 
 /**
  * draw_divider - Draw a line between the sidebar and the rest of neomutt
+ * @param win        Window to draw on
  * @param num_rows   Height of the Sidebar
  * @param num_cols   Width of the Sidebar
  * @retval 0   Empty string
@@ -777,6 +778,7 @@ static int draw_divider(struct MuttWindow *win, int num_rows, int num_cols)
 
 /**
  * fill_empty_space - Wipe the remaining Sidebar space
+ * @param win        Window to draw on
  * @param first_row  Window line to start (0-based)
  * @param num_rows   Number of rows to fill
  * @param div_width  Width in screen characters taken by the divider
@@ -803,6 +805,7 @@ static void fill_empty_space(struct MuttWindow *win, int first_row,
 
 /**
  * draw_sidebar - Write out a list of mailboxes, in a panel
+ * @param win        Window to draw on
  * @param num_rows   Height of the Sidebar
  * @param num_cols   Width of the Sidebar
  * @param div_width  Width in screen characters taken by the divider
@@ -1170,7 +1173,7 @@ void mutt_sb_notify_mailbox(struct Mailbox *m, bool created)
 
 /**
  * mutt_sb_observer - Listen for config changes affecting the sidebar - Implements ::observer_t()
- * @param cs Config Set
+ * @param nc Notification data
  * @retval bool True, if successful
  */
 int mutt_sb_observer(struct NotifyCallback *nc)
