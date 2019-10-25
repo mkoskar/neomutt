@@ -592,7 +592,7 @@ msgstr "įprastos spalvos nepalaikomos"
 #: color.c:1275
 #, c-format
 msgid "Maximum quoting level is %d"
-msgstr "Giliausias cituojamo teksto lygmuo yra %"
+msgstr "Giliausias cituojamo teksto lygmuo yra %d"
 
 #: color.c:1312
 #, c-format
