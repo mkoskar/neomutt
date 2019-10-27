@@ -1,0 +1,45 @@
+From a327386c5bf676a8321335fca849159ddd664ab9 Mon Sep 17 00:00:00 2001
+From: Kevin McCarthy <kevin@8t8.us>
+Date: Thu, 17 Oct 2019 15:48:31 +0800
+Subject: Stable branch quick fix for pager change-mailbox push/exec bug
+
+The menu functions mutt_push/pop_current_menu() keep track of the menu
+stack, automatically setting CurrentMenu when exiting menus.
+
+The only gotcha was the function sharing between the index and pager
+menus.  The index uses a hack, setting menu->menu to MENU_PAGER for
+operations redirecting through the index and back to the pager
+afterwards.
+
+I thought this was covered by the restoration of the menu before
+returning to the pager, or when exiting the index switch.  However it
+is not: invoking other menus, such as the browser, will result in
+CurrentMenu being set to the C_Pager when exiting those(by
+mutt_menu_pop_current()).  This can result in folder hooks failing for
+unshared functions.
+
+A better fix is to remove the hack of using menu->menu, because this
+can easily cause a problem in the future in other situations.(I will
+make this fix in master next.)  For the stable branch, I am explicitly
+setting/restoring CurrentMenu before invoking the folder hooks.
+
+Upstream-commit: https://gitlab.com/muttmua/mutt/commit/a327386c5bf676a8321335fca849159ddd664ab9
+Co-authored-by:
+---
+ index.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/index.c b/index.c
+index 32925f29..d57ce985 100644
+--- a/index.c
++++ b/index.c
+@@ -1371,6 +1371,9 @@ int mutt_index_menu(void)
+ 
+         mutt_sleep(0);
+ 
++        /* XXX: quick fix in stable branch.  Better fix will be in master */
++        CurrentMenu = MENU_MAIN;
++
+         /* Note that menu->menu may be MENU_PAGER if the change folder
+          * operation originated from the pager.
+          *

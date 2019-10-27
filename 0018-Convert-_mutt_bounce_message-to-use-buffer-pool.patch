@@ -1,0 +1,56 @@
+From 58a8189770149329507f4d64224a8c6cc26b09f2 Mon Sep 17 00:00:00 2001
+From: Kevin McCarthy <kevin@8t8.us>
+Date: Fri, 25 Oct 2019 19:29:56 +0800
+Subject: Convert _mutt_bounce_message to use buffer pool
+
+Upstream-commit: https://gitlab.com/muttmua/mutt/commit/58a8189770149329507f4d64224a8c6cc26b09f2
+Co-authored-by:
+---
+ sendlib.c | 14 +++++++++-----
+ 1 file changed, 9 insertions(+), 5 deletions(-)
+
+diff --git a/sendlib.c b/sendlib.c
+index 0b1766ce..2d5d221a 100644
+--- a/sendlib.c
++++ b/sendlib.c
+@@ -2633,7 +2633,8 @@ static int _mutt_bounce_message(FILE *fp, struct Email *h, struct Address *to, const char *r
+ {
+   int i, ret = 0;
+   FILE *f;
+-  char date[128], tempfile[PATH_MAX];
++  char date[128];
++  struct Buffer *tempfile;
+   struct Message *msg = NULL;
+ 
+   if (!h)
+@@ -2651,8 +2652,9 @@ static int _mutt_bounce_message(FILE *fp, struct Email *h, struct Address *to, const char *r
+ 
+   if (!fp) fp = msg->fp;
+ 
+-  mutt_mktemp(tempfile, sizeof(tempfile));
+-  if ((f = mutt_file_fopen(tempfile, "w")) != NULL)
++  tempfile = mutt_buffer_pool_get();
++  mutt_buffer_mktemp(tempfile);
++  if ((f = mutt_file_fopen(mutt_b2s(tempfile), "w")) != NULL)
+   {
+     int ch_flags = CH_XMIT | CH_NONEWLINE | CH_NOQFROM;
+     char* msgid_str;
+@@ -2675,14 +2677,16 @@ static int _mutt_bounce_message(FILE *fp, struct Email *h, struct Address *to, const char *r
+ 
+ #if USE_SMTP
+     if (C_SmtpUrl)
+-      ret = mutt_smtp_send(env_from, to, NULL, NULL, tempfile,
++      ret = mutt_smtp_send(env_from, to, NULL, NULL, mutt_b2s(tempfile),
+                             h->content->encoding == ENC_8BIT);
+     else
+ #endif /* USE_SMTP */
+-      ret = mutt_invoke_sendmail(env_from, to, NULL, NULL, tempfile,
++      ret = mutt_invoke_sendmail(env_from, to, NULL, NULL, mutt_b2s(tempfile),
+                                   h->content->encoding == ENC_8BIT);
+   }
+ 
++  mutt_buffer_pool_release(&tempfile);
++
+   if (msg)
+     mx_close_message(Context, &msg);
+ 

@@ -1,0 +1,74 @@
+From e750e39c4a80bb98e98c5fc38500e0897a3e0279 Mon Sep 17 00:00:00 2001
+From: Kevin McCarthy <kevin@8t8.us>
+Date: Thu, 17 Oct 2019 18:34:55 +0800
+Subject: Clean up pager change folder aborts to return to pager
+
+Changing folder from within the pager behaved inconsistently when
+aborting, or upon a normal error.  It would sometimes return the pager
+and other times return to the index.
+
+Ensure it returns to the pager, except in the case where
+mx_close_mailbox() fails due to a new mail or reopen event.  In that
+case we likely want to be in the index - the message we were viewing
+could have disappeared or relocated.
+
+Upstream-commit: https://gitlab.com/muttmua/mutt/commit/e750e39c4a80bb98e98c5fc38500e0897a3e0279
+Co-authored-by:
+---
+ index.c | 20 +++++++++-----------
+ 1 file changed, 9 insertions(+), 11 deletions(-)
+
+diff --git a/index.c b/index.c
+index 35f106b0..0f93df3f 100644
+--- a/index.c
++++ b/index.c
+@@ -1277,7 +1277,7 @@ int mutt_index_menu(void)
+       case OP_MAIN_CHANGE_FOLDER_READONLY:
+       {
+         struct Buffer *folderbuf;
+-        int cont = 0;  /* Set if we want to continue instead of break */
++        int pager_return = 1;  /* return to display message in pager */
+ 
+         folderbuf = mutt_buffer_pool_get();
+ 
+@@ -1316,14 +1316,7 @@ int mutt_index_menu(void)
+           mutt_buffer_buffy(folderbuf);
+ 
+           if (mutt_buffer_enter_fname(cp, folderbuf, 1) == -1)
+-          {
+-            if (in_pager)
+-            {
+-              op = OP_DISPLAY_MESSAGE;
+-              cont = 1;
+-            }
+             goto changefoldercleanup;
+-          }
+         }
+ 
+         if (!mutt_buffer_len(folderbuf))
+@@ -1338,6 +1331,9 @@ int mutt_index_menu(void)
+           goto changefoldercleanup;
+         }
+ 
++        /* past this point, we don't return to the pager on error */
++        pager_return = 0;
++
+         /* keepalive failure in mutt_enter_fname may kill connection. #3028 */
+         if (Context && !Context->path)
+           FREE(&Context);
+@@ -1410,10 +1406,12 @@ int mutt_index_menu(void)
+ 
+       changefoldercleanup:
+         mutt_buffer_pool_release(&folderbuf);
+-        if (cont)
++        if (in_pager && pager_return)
++        {
++          op = OP_DISPLAY_MESSAGE;
+           continue;
+-        else
+-          break;
++        }
++        break;
+       }
+ 
+       case OP_DISPLAY_MESSAGE:

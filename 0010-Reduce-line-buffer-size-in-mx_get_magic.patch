@@ -1,0 +1,34 @@
+From 9506db1e4a01fadf503b63381ab2b60dee32b836 Mon Sep 17 00:00:00 2001
+From: Kevin McCarthy <kevin@8t8.us>
+Date: Tue, 15 Oct 2019 15:26:20 +0800
+Subject: Reduce line buffer size in mx_get_magic()
+
+tmp is only used for mbox and mmdf iniital line examination.  That
+only needs to look at 6 characters from the first line.
+
+Upstream-commit: https://gitlab.com/muttmua/mutt/commit/9506db1e4a01fadf503b63381ab2b60dee32b836
+Co-authored-by:
+---
+ mx.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/mx.c b/mx.c
+index 472e8ee3..f693f0e0 100644
+--- a/mx.c
++++ b/mx.c
+@@ -391,7 +391,6 @@ int mx_get_magic(const char *path)
+ {
+   struct stat st;
+   int magic = 0;
+-  char tmp[PATH_MAX];
+   FILE *f;
+ 
+ #ifdef USE_IMAP
+@@ -437,6 +436,7 @@ int mx_get_magic(const char *path)
+     struct utimbuf times;
+ #endif /* HAVE_UTIMENSAT */
+     int ch;
++    char tmp[10];
+ 
+     /* Some mailbox creation tools erroneously append a blank line to
+      * a file before appending a mail message.  This allows mutt to

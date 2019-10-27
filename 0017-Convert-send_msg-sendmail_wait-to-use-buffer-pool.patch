@@ -1,0 +1,31 @@
+From 8de05d5ffc86c1a9dad61e83189a74331c2869b9 Mon Sep 17 00:00:00 2001
+From: Kevin McCarthy <kevin@8t8.us>
+Date: Fri, 25 Oct 2019 19:13:50 +0800
+Subject: Convert send_msg() $sendmail_wait to use buffer pool
+
+Upstream-commit: https://gitlab.com/muttmua/mutt/commit/8de05d5ffc86c1a9dad61e83189a74331c2869b9
+Co-authored-by:
+---
+ sendlib.c | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/sendlib.c b/sendlib.c
+index 5850da3e..0b1766ce 100644
+--- a/sendlib.c
++++ b/sendlib.c
+@@ -2268,10 +2268,12 @@ send_msg(const char *path, char **args, const char *msg, char **tempfile)
+ 
+   if (C_SendmailWait >= 0 && tempfile)
+   {
+-    char tmp[PATH_MAX];
++    struct Buffer *tmp;
+ 
+-    mutt_mktemp(tmp, sizeof(tmp));
+-    *tempfile = mutt_str_strdup(tmp);
++    tmp = mutt_buffer_pool_get();
++    mutt_buffer_mktemp(tmp);
++    *tempfile = mutt_str_strdup(mutt_b2s(tmp));
++    mutt_buffer_pool_release(&tmp);
+   }
+ 
+   if ((pid = fork()) == 0)

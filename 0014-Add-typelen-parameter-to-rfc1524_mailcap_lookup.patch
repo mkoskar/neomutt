@@ -1,0 +1,195 @@
+From 12cd2d529c8462268c3958e4ae2bab25cee92ae7 Mon Sep 17 00:00:00 2001
+From: Kevin McCarthy <kevin@8t8.us>
+Date: Wed, 23 Oct 2019 19:17:09 +0800
+Subject: Add typelen parameter to rfc1524_mailcap_lookup()
+
+Because of mime_lookup commands, the call to mutt_check_lookup_list()
+inside the function can modify the passed in type.  Add an explicit
+length parameter to the function, rather than assume the parameter
+size.  This also makes it more evident the type parameter can be
+modified to callers.
+
+Change the len parameter to mutt_check_lookup_list() to type size_t,
+just to be correct about it.
+
+Upstream-commit: https://gitlab.com/muttmua/mutt/commit/12cd2d529c8462268c3958e4ae2bab25cee92ae7
+Co-authored-by:
+---
+ email/attach.c     | 14 +++++++-------
+ handler.c    |  6 +++---
+ protos.h     |  2 +-
+ recvattach.c |  5 +++--
+ mailcap.c    |  5 ++---
+ mailcap.h    |  2 +-
+ 6 files changed, 17 insertions(+), 17 deletions(-)
+
+diff --git a/email/attach.c b/email/attach.c
+index de32d1fb..5e9906f5 100644
+--- a/email/attach.c
++++ b/email/attach.c
+@@ -58,7 +58,7 @@ int mutt_get_tmp_attachment(struct Body *a)
+   entry = rfc1524_new_entry();
+ 
+   snprintf(type, sizeof(type), "%s/%s", TYPE(a), a->subtype);
+-  rfc1524_mailcap_lookup(a, type, entry, 0);
++  rfc1524_mailcap_lookup(a, type, sizeof(type), entry, 0);
+   mutt_rfc1524_expand_filename(entry->nametemplate, a->filename, tempfile);
+ 
+   rfc1524_free_entry(&entry);
+@@ -103,7 +103,7 @@ int mutt_compose_attachment(struct Body *a)
+   int rc = 0;
+ 
+   snprintf(type, sizeof(type), "%s/%s", TYPE(a), a->subtype);
+-  if (rfc1524_mailcap_lookup(a, type, entry, MUTT_COMPOSE))
++  if (rfc1524_mailcap_lookup(a, type, sizeof(type), entry, MUTT_COMPOSE))
+   {
+     if (entry->composecommand || entry->composetypecommand)
+     {
+@@ -239,7 +239,7 @@ int mutt_edit_attachment(struct Body *a)
+   int rc = 0;
+ 
+   snprintf(type, sizeof(type), "%s/%s", TYPE(a), a->subtype);
+-  if (rfc1524_mailcap_lookup(a, type, entry, MUTT_EDIT))
++  if (rfc1524_mailcap_lookup(a, type, sizeof(type), entry, MUTT_EDIT))
+   {
+     if (entry->editcommand)
+     {
+@@ -303,7 +303,7 @@ bailout:
+ }
+ 
+ 
+-void mutt_check_lookup_list(struct Body *b, char *type, int len)
++void mutt_check_lookup_list(struct Body *b, char *type, size_t len)
+ {
+   struct ListHead *t = MimeLookupList;
+   int i;
+@@ -374,7 +374,7 @@ int mutt_view_attachment(FILE *fp, struct Body *a, int flag, struct Email *hdr,
+   if (use_mailcap)
+   {
+     entry = rfc1524_new_entry();
+-    if (!rfc1524_mailcap_lookup(a, type, entry, 0))
++    if (!rfc1524_mailcap_lookup(a, type, sizeof(type), entry, 0))
+     {
+       if (flag == MUTT_REGULAR)
+       {
+@@ -929,7 +929,7 @@ int mutt_print_attachment(FILE *fp, struct Body *a)
+ 
+   snprintf(type, sizeof(type), "%s/%s", TYPE(a), a->subtype);
+ 
+-  if (rfc1524_mailcap_lookup(a, type, NULL, MUTT_PRINT))
++  if (rfc1524_mailcap_lookup(a, type, sizeof(type), NULL, MUTT_PRINT))
+   {
+     struct MailcapEntry *entry = NULL;
+     int piped = FALSE;
+@@ -937,7 +937,7 @@ int mutt_print_attachment(FILE *fp, struct Body *a)
+     mutt_debug(LL_DEBUG2, "Using mailcap...\n"));
+ 
+     entry = rfc1524_new_entry();
+-    rfc1524_mailcap_lookup(a, type, entry, MUTT_PRINT);
++    rfc1524_mailcap_lookup(a, type, sizeof(type), entry, MUTT_PRINT);
+     mutt_rfc1524_expand_filename(entry->nametemplate, a->filename,
+                                   newfile);
+ 
+diff --git a/handler.c b/handler.c
+index 5a0766a8..5e613d41 100644
+--- a/handler.c
++++ b/handler.c
+@@ -955,7 +955,7 @@ static int is_mmnoask(const char *buf)
+  */
+ static int is_autoview(struct Body *b)
+ {
+-  char type[128];
++  char type[256];
+   int is_autoview = 0;
+ 
+   snprintf(type, sizeof(type), "%s/%s", TYPE(b), b->subtype);
+@@ -988,7 +988,7 @@ static int is_autoview(struct Body *b)
+    *
+    * WARNING: type is altered by this call as a result of `mime_lookup' support */
+   if (is_autoview)
+-    return rfc1524_mailcap_lookup(b, type, NULL, MUTT_AUTOVIEW);
++    return rfc1524_mailcap_lookup(b, type, sizeof(type), NULL, MUTT_AUTOVIEW);
+ 
+   return 0;
+ }
+@@ -1320,7 +1320,7 @@ static int autoview_handler(struct Body *a, struct State *s)
+   tempfile = mutt_buffer_pool_get();
+ 
+   snprintf(type, sizeof(type), "%s/%s", TYPE(a), a->subtype);
+-  rfc1524_mailcap_lookup(a, type, entry, MUTT_AUTOVIEW);
++  rfc1524_mailcap_lookup(a, type, sizeof(type), entry, MUTT_AUTOVIEW);
+ 
+   fname = mutt_str_strdup(a->filename);
+   mutt_file_sanitize_filename(fname, 1);
+diff --git a/protos.h b/protos.h
+index 8ee932c8..759acc4f 100644
+--- a/protos.h
++++ b/protos.h
+@@ -236,7 +236,7 @@ const char *mutt_getcwd(struct Buffer *);
+ void mutt_help(int);
+ const char *mutt_idxfmt_hook(const char *, struct Context *, struct Email *);
+ void mutt_draw_tree(struct Context *);
+-void mutt_check_lookup_list(struct Body *, char *, int);
++void mutt_check_lookup_list(struct Body *, char *, size_t);
+ void mutt_make_attribution(struct Context *ctx, struct Email *cur, FILE *out);
+ void mutt_make_forward_subject(struct Envelope *env, struct Context *ctx, struct Email *cur);
+ void mutt_make_help(char *, size_t, const char *, int, int);
+diff --git a/recvattach.c b/recvattach.c
+index 087858c9..c2da1785 100644
+--- a/recvattach.c
++++ b/recvattach.c
+@@ -741,7 +741,7 @@ static int can_print(ATTACH_CONTEXT *actx, struct Body *top, int tag)
+     snprintf(type, sizeof(type), "%s/%s", TYPE(top), top->subtype);
+     if (!tag || top->tagged)
+     {
+-      if (!rfc1524_mailcap_lookup(top, type, NULL, MUTT_PRINT))
++      if (!rfc1524_mailcap_lookup(top, type, sizeof(type), NULL, MUTT_PRINT))
+       {
+         if (mutt_str_strcasecmp("text/plain", top->subtype) &&
+             mutt_str_strcasecmp("application/postscript", top->subtype))
+@@ -775,7 +775,8 @@ static void print_attachment_list(ATTACH_CONTEXT *actx, FILE *fp, int tag, struct Body
+     if (!tag || top->tagged)
+     {
+       snprintf(type, sizeof(type), "%s/%s", TYPE(top), top->subtype);
+-      if (!option(C_AttachSplit) && !rfc1524_mailcap_lookup(top, type, NULL, MUTT_PRINT))
++      if (!option(C_AttachSplit) &&
++          !rfc1524_mailcap_lookup(top, type, sizeof(type), NULL, MUTT_PRINT))
+       {
+         if (!mutt_str_strcasecmp("text/plain", top->subtype) ||
+             !mutt_str_strcasecmp("application/postscript", top->subtype))
+diff --git a/mailcap.c b/mailcap.c
+index 6597df2b..2fc9f175 100644
+--- a/mailcap.c
++++ b/mailcap.c
+@@ -420,7 +420,7 @@ void rfc1524_free_entry(struct MailcapEntry **entry)
+  * in *entry, and returns 1.  On failure(not found), returns 0.
+  * If entry == NULL just return 1 if the given type is found.
+  */
+-int rfc1524_mailcap_lookup(struct Body *a, char *type, struct MailcapEntry *entry, int opt)
++int rfc1524_mailcap_lookup(struct Body *a, char *type, size_t typelen, struct MailcapEntry *entry, int opt)
+ {
+   struct Buffer *path = NULL;
+   int found = FALSE;
+@@ -438,8 +438,7 @@ int rfc1524_mailcap_lookup(struct Body *a, char *type, struct MailcapEntry *entry, int opt)
+     return 0;
+   }
+ 
+-  /* FIXME: sizeof type should be passed to rfc1524_mailcap_lookup() */
+-  mutt_check_lookup_list(a, type, 128);
++  mutt_check_lookup_list(a, type, typelen);
+ 
+   path = mutt_buffer_pool_get();
+ 
+diff --git a/mailcap.h b/mailcap.h
+index 87b06d6d..bdf0468e 100644
+--- a/mailcap.h
++++ b/mailcap.h
+@@ -38,7 +38,7 @@ struct MailcapEntry *rfc1524_new_entry(void);
+ void rfc1524_free_entry(struct MailcapEntry **);
+ int mutt_rfc1524_expand_command(struct Body *, const char *, const char *, struct Buffer *);
+ void mutt_rfc1524_expand_filename(const char *, const char *, struct Buffer *);
+-int rfc1524_mailcap_lookup(struct Body *, char *, struct MailcapEntry *, int);
++int rfc1524_mailcap_lookup(struct Body *, char *, size_t, struct MailcapEntry *, int);
+ int mutt_file_rename(const char *, const char *);
+ 
+ #endif /* _RFC1524_H */

@@ -1,0 +1,47 @@
+From 71d6dbea64b3f6d9676867030214236878693bcb Mon Sep 17 00:00:00 2001
+From: Kevin McCarthy <kevin@8t8.us>
+Date: Sun, 13 Oct 2019 16:25:54 +0800
+Subject: Update mime fields when piping a message with $pipe_decode set
+
+Programs that process the message may get confused if the original
+mime fields are in the output.  Add the CH_MIME flag to strip mime
+headers and CH_TXTPLAIN to add decoded text mime headers in their
+place, just as <decode-copy> does.
+
+However, make sure not to add the flags when printing, as printers
+highly likely won't care and users probably don't want to see those
+headers in their printout.
+
+Upstream-commit: https://gitlab.com/muttmua/mutt/commit/71d6dbea64b3f6d9676867030214236878693bcb
+Co-authored-by:
+---
+ commands.c | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/commands.c b/commands.c
+index b88335d1..9a27614f 100644
+--- a/commands.c
++++ b/commands.c
+@@ -440,14 +440,21 @@ static void pipe_set_flags(int decode, int print, int *cmflags, int *chflags)
+ {
+   if (decode)
+   {
+-    *cmflags |= MUTT_CM_DECODE | MUTT_CM_CHARCONV;
+     *chflags |= CH_DECODE | CH_REORDER;
++    *cmflags |= MUTT_CM_DECODE | MUTT_CM_CHARCONV;
+ 
+     if (option(C_Weed))
+     {
+       *chflags |= CH_WEED;
+       *cmflags |= MUTT_CM_WEED;
+     }
++
++    /* Just as with copy-decode, we need to update the
++     * mime fields to avoid confusing programs that may
++     * process the email.  However, we don't want to force
++     * those fields to appear in printouts. */
++    if (!print)
++      *chflags |= CH_MIME | CH_TXTPLAIN;
+   }
+ 
+   if (print)

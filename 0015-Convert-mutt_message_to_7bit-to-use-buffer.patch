@@ -1,0 +1,96 @@
+From 671e653c6b5d70adeb644a36961bdc2c8d2f2e9f Mon Sep 17 00:00:00 2001
+From: Kevin McCarthy <kevin@8t8.us>
+Date: Fri, 25 Oct 2019 15:28:25 +0800
+Subject: Convert mutt_message_to_7bit() to use buffer
+
+Clean up the error handling a bit.
+
+Because of the recursive invocation, avoid the buffer pool in this
+case.
+
+Upstream-commit: https://gitlab.com/muttmua/mutt/commit/671e653c6b5d70adeb644a36961bdc2c8d2f2e9f
+Co-authored-by:
+---
+ sendlib.c | 36 ++++++++++++++++++++++--------------
+ 1 file changed, 22 insertions(+), 14 deletions(-)
+
+diff --git a/sendlib.c b/sendlib.c
+index 72ac3a93..de2cf78f 100644
+--- a/sendlib.c
++++ b/sendlib.c
+@@ -1072,8 +1072,7 @@ bye:
+ 
+ void mutt_message_to_7bit(struct Body *a, FILE *fp)
+ {
+-  char temp[PATH_MAX];
+-  char *line = NULL;
++  struct Buffer *temp = NULL;
+   FILE *fpin = NULL;
+   FILE *fpout = NULL;
+   struct stat sb;
+@@ -1092,12 +1091,15 @@ void mutt_message_to_7bit(struct Body *a, FILE *fp)
+     {
+       mutt_perror("stat");
+       mutt_file_fclose(&fpin);
++      goto cleanup;
+     }
+     a->length = sb.st_size;
+   }
+ 
+-  mutt_mktemp(temp, sizeof(temp));
+-  if (!(fpout = mutt_file_fopen(temp, "w+")))
++  /* Avoid buffer pool due to recursion */
++  temp = mutt_buffer_new();
++  mutt_buffer_mktemp(temp);
++  if (!(fpout = mutt_file_fopen(mutt_b2s(temp), "w+")))
+   {
+     mutt_perror("fopen");
+     goto cleanup;
+@@ -1116,31 +1118,37 @@ void mutt_message_to_7bit(struct Body *a, FILE *fp)
+   fputc('\n', fpout);
+   mutt_write_mime_body(a->parts, fpout);
+ 
+-cleanup:
+-  FREE(&line);
+-
+-  if (fpin && fpin != fp)
++  if (fpin != fp)
+     mutt_file_fclose(&fpin);
+-  if (fpout)
+-    mutt_file_fclose(&fpout);
+-  else
+-    return;
++  mutt_file_fclose(&fpout);
+ 
+   a->encoding = ENC_7BIT;
+   FREE(&a->d_filename);
+   a->d_filename = a->filename;
+   if (a->filename && a->unlink)
+     unlink(a->filename);
+-  a->filename = mutt_str_strdup(temp);
++  a->filename = mutt_str_strdup(mutt_b2s(temp));
+   a->unlink = 1;
+   if (stat(a->filename, &sb) == -1)
+   {
+     mutt_perror("stat");
+-    return;
++    goto cleanup;
+   }
+   a->length = sb.st_size;
+   mutt_body_free(&a->parts);
+   a->hdr->content = NULL;
++
++cleanup:
++  if (fpin && fpin != fp)
++    mutt_file_fclose(&fpin);
++
++  if (fpout)
++  {
++    mutt_file_fclose(&fpout);
++    mutt_file_unlink(mutt_b2s(temp));
++  }
++
++  mutt_buffer_free(&temp);
+ }
+ 
+ static void transform_to_7bit(struct Body *a, FILE *fpin)
