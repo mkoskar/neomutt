@@ -245,7 +245,9 @@ int maildir_sync_message(struct Mailbox *m, int msgno)
     }
 
     maildir_gen_flags(suffix, sizeof(suffix), e);
+    mutt_debug(LL_DEBUG2, "maildir: maildir flags (suffix): %s", suffix);
 
+    mutt_debug(LL_DEBUG2, "maildir: e->read: %s, e->old: %s", e->read, e->old);
     mutt_buffer_printf(partpath, "%s/%s%s", (e->read || e->old) ? "cur" : "new",
                        mutt_b2s(newpath), suffix);
     mutt_buffer_printf(fullpath, "%s/%s", mailbox_path(m), mutt_b2s(partpath));
@@ -260,6 +262,7 @@ int maildir_sync_message(struct Mailbox *m, int msgno)
     /* record that the message is possibly marked as trashed on disk */
     e->trash = e->deleted;
 
+    mutt_debug(LL_DEBUG2, "maildir: oldpath: %s, fullpath: %s", mutt_b2s(oldpath), mutt_b2s(fullpath));
     if (rename(mutt_b2s(oldpath), mutt_b2s(fullpath)) != 0)
     {
       mutt_perror("rename");

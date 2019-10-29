@@ -334,7 +334,9 @@ static char *email_get_id(struct Email *e)
  */
 static char *email_get_fullpath(struct Email *e, char *buf, size_t buflen)
 {
-  snprintf(buf, buflen, "%s/%s", nm_email_get_folder(e), e->path);
+  char *folder = nm_email_get_folder(e);
+  mutt_debug(LL_DEBUG2, "nm: nm_email_get_folder: %s", folder);
+  snprintf(buf, buflen, "%s/%s", folder, e->path);
   return buf;
 }
 
@@ -2384,20 +2386,40 @@ static int nm_mbox_sync(struct Mailbox *m, int *index_hint)
       mutt_debug(LL_DEBUG2, "nm: fixing obsolete path '%s'\n", old_file);
     }
     else
+    {
+      mutt_debug(LL_DEBUG2, "nm: email not deleted. setting old_file to %s", new_file);
       email_get_fullpath(e, old_file, sizeof(old_file));
+    }
 
+
+    mutt_debug(LL_DEBUG2, "nm: edata->folder: %s", edata->folder);
+    mutt_debug(LL_DEBUG2, "nm: m->pathbuf: %s", m->pathbuf);
+    mutt_debug(LL_DEBUG2, "nm: m->magic: %s", m->pathbuf);
     mutt_buffer_strcpy(&m->pathbuf, edata->folder);
     m->magic = edata->magic;
+    mutt_debug(LL_DEBUG2, "nm: edata->folder: %s", edata->folder);
+    mutt_debug(LL_DEBUG2, "nm: m->pathbuf: %s", m->pathbuf);
+    mutt_debug(LL_DEBUG2, "nm: m->magic: %s", m->pathbuf);
     rc = mh_sync_mailbox_message(m, i, h);
+    mutt_debug(LL_DEBUG2, "nm: edata->folder: %s", edata->folder);
+    mutt_debug(LL_DEBUG2, "nm: m->pathbuf: %s", m->pathbuf);
+    mutt_debug(LL_DEBUG2, "nm: m->magic: %s", m->pathbuf);
     mutt_buffer_strcpy(&m->pathbuf, uri);
     m->magic = MUTT_NOTMUCH;
+    mutt_debug(LL_DEBUG2, "nm: edata->folder: %s", edata->folder);
+    mutt_debug(LL_DEBUG2, "nm: m->pathbuf: %s", m->pathbuf);
+    mutt_debug(LL_DEBUG2, "nm: m->magic: %s", m->pathbuf);
 
     if (rc)
       break;
 
     if (!e->deleted)
+    {
       email_get_fullpath(e, new_file, sizeof(new_file));
+      mutt_debug(LL_DEBUG2, "nm: email not deleted. setting new_file to %s", new_file);
+    }
 
+    mutt_debug(LL_DEBUG2, "nm: e->deleted: %s, old_file: %s, new_file: %s", e->deleted, old_file, new_file);
     if (e->deleted || (strcmp(old_file, new_file) != 0))
     {
       if (e->deleted && (remove_filename(m, old_file) == 0))
